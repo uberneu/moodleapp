@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { InjectionToken, Injector, ModuleWithProviders, NgModule } from '@angular/core';
+import { InjectionToken, Injector, ModuleWithProviders, NgModule, Type } from '@angular/core';
 import {
     PreloadAllModules,
     RouterModule,
@@ -26,6 +26,8 @@ import {
 } from '@angular/router';
 
 import { CoreArray } from '@singletons/array';
+
+const modulesRoutes: WeakMap<InjectionToken<unknown>, ModuleRoutes> = new WeakMap();
 
 /**
  * Build app routes.
@@ -96,6 +98,12 @@ function buildConditionalUrlMatcher(pathOrMatcher: string | UrlMatcher, conditio
         return { consumed: segments.slice(0, parts.length), posParams };
     };
 }
+
+/**
+ * Type to declare lazy route modules.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type LazyRoutesModule = Type<any>;
 
 /**
  * Build url matcher using a regular expression.
@@ -169,6 +177,10 @@ export function conditionalRoutes(routes: Routes, condition: () => boolean): Rou
  * @returns Routes.
  */
 export function resolveModuleRoutes(injector: Injector, token: InjectionToken<ModuleRoutesConfig[]>): ModuleRoutes {
+    if (modulesRoutes.has(token)) {
+        return modulesRoutes.get(token) as ModuleRoutes;
+    }
+
     const configs = injector.get(token, []);
     const routes = configs.map(config => {
         if (Array.isArray(config)) {
@@ -184,20 +196,21 @@ export function resolveModuleRoutes(injector: Injector, token: InjectionToken<Mo
         };
     });
 
-    return {
+    const moduleRoutes = {
         children: CoreArray.flatten(routes.map(r => r.children)),
         siblings: CoreArray.flatten(routes.map(r => r.siblings)),
     };
+
+    modulesRoutes.set(token, moduleRoutes);
+
+    return moduleRoutes;
 }
 
 export const APP_ROUTES = new InjectionToken('APP_ROUTES');
 
 @NgModule({
     imports: [
-        RouterModule.forRoot([], {
-            preloadingStrategy: PreloadAllModules,
-            relativeLinkResolution: 'corrected',
-        }),
+        RouterModule.forRoot([], { preloadingStrategy: PreloadAllModules }),
     ],
     providers: [
         { provide: ROUTES, multi: true, useFactory: buildAppRoutes, deps: [Injector] },

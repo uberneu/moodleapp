@@ -45,7 +45,6 @@ import { CoreForms } from '@singletons/form';
 import { CoreReminders, CoreRemindersService, CoreRemindersUnits } from '@features/reminders/services/reminders';
 import { CoreRemindersSetReminderMenuComponent } from '@features/reminders/components/set-reminder-menu/set-reminder-menu';
 import moment from 'moment-timezone';
-import { CoreAppProvider } from '@services/app';
 
 /**
  * Page that displays a form to create/edit an event.
@@ -61,7 +60,6 @@ export class AddonCalendarEditEventPage implements OnInit, OnDestroy, CanLeave {
     @ViewChild('editEventForm') formElement!: ElementRef;
 
     title = 'addon.calendar.newevent';
-    dateFormat: string;
     component = AddonCalendarProvider.COMPONENT;
     loaded = false;
     hasOffline = false;
@@ -71,14 +69,12 @@ export class AddonCalendarEditEventPage implements OnInit, OnDestroy, CanLeave {
     groups: CoreGroup[] = [];
     loadingGroups = false;
     courseGroupSet = false;
-    errors: Record<string, string>;
     error = false;
     eventRepeatId?: number;
     otherEventsCount = 0;
     eventId?: number;
     maxDate: string;
     minDate: string;
-    displayTimezone?: string;
 
     // Form variables.
     form: FormGroup;
@@ -103,14 +99,6 @@ export class AddonCalendarEditEventPage implements OnInit, OnDestroy, CanLeave {
     ) {
         this.currentSite = CoreSites.getRequiredCurrentSite();
         this.remindersEnabled = CoreReminders.isEnabled();
-        this.errors = {
-            required: Translate.instant('core.required'),
-        };
-
-        // Calculate format to use. ion-datetime doesn't support escaping characters ([]), so we remove them.
-        this.dateFormat = CoreTimeUtils.convertPHPToMoment(Translate.instant('core.strftimedatetimeshort'))
-            .replace(/[[\]]/g, '');
-        this.displayTimezone = CoreAppProvider.getForcedTimezone();
 
         this.form = new FormGroup({});
 
